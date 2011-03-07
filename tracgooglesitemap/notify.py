@@ -14,6 +14,7 @@ from trac.wiki.api   import IWikiChangeListener
 from trac.ticket.api import ITicketChangeListener
 from urllib          import urlopen,quote_plus
 
+# TODO: Define extension point for plugins so that for example FullBlogPlugin could register notifications
 
 class GoogleSitemapNotifier(Component):
     implements ( IWikiChangeListener, ITicketChangeListener )
