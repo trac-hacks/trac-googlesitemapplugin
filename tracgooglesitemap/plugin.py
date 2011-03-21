@@ -18,6 +18,7 @@ from  trac.resource   import  Resource
 from  trac.ticket     import  Ticket
 from  trac.util       import  format_datetime
 from  trac.wiki       import  WikiPage
+from  trac.attachment import  Attachment
 
 class GoogleSitemapPlugin(Component):
     """ Generates a Google compatible sitemap with all wiki pages and/or tickets.
@@ -112,7 +113,7 @@ class GoogleSitemapPlugin(Component):
                               tag.lastmod( self._fixtime(format_datetime (time,'iso8601')) ),
                               self.changefreq and tag.changefreq( self.changefreq ) or '',
                               tag.priority(self.increased_priority) if name in wiki_prioritylist else tag.priority(self.default_priority)
-                        ) for [name,time,version] in cursor if 'WIKI_VIEW' in req.perm(WikiPage(self.env, name, version).resource) ]
+                        ) for (name,time,version) in cursor if 'WIKI_VIEW' in req.perm(WikiPage(self.env, name, version).resource) ]
             else:
               urls = []
             
@@ -124,7 +125,7 @@ class GoogleSitemapPlugin(Component):
                               tag.loc( self.env.abs_href.ticket(ticketid) ),
                               tag.lastmod( self._fixtime(format_datetime (changetime,'iso8601')) ),
                               tag.priority(self.default_priority)
-                        ) for [ticketid,changetime] in cursor if 'TICKET_VIEW' in req.perm(Ticket(self.env, ticketid).resource) ] )
+                        ) for (ticketid,changetime) in cursor if 'TICKET_VIEW' in req.perm(Ticket(self.env, ticketid).resource) ] )
 
             if 'report' in self.listrealms and self.env.is_component_enabled('trac.ticket.report'):
                 if 'REPORT_VIEW' in req.perm:
@@ -136,7 +137,7 @@ class GoogleSitemapPlugin(Component):
                 urls.append( [ tag.url(
                                 tag.loc( self.env.abs_href('report', report) ),
                                 tag.priority(self.default_priority)
-                          ) for [report] in cursor if 'REPORT_VIEW' in req.perm(Resource('report', report)) ] )
+                          ) for (report,) in cursor if 'REPORT_VIEW' in req.perm(Resource('report', report)) ] )
 
             if 'roadmap' in self.listrealms and self.env.is_component_enabled('trac.ticket.roadmap'):
                 if 'ROADMAP_VIEW' in req.perm or 'MILESTONE_LIST' in req.perm:
@@ -148,15 +149,15 @@ class GoogleSitemapPlugin(Component):
                 urls.append( [ tag.url(
                                 tag.loc( self.env.abs_href('milestone', milestone) ),
                                 tag.priority(self.default_priority)
-                          ) for [milestone] in cursor if 'MILESTONE_VIEW' in req.perm(Resource('milestone', milestone)) ] )
+                          ) for (milestone,) in cursor if 'MILESTONE_VIEW' in req.perm(Resource('milestone', milestone)) ] )
 
             if 'attachment' in self.listrealms:
                 cursor.execute('SELECT type,id,filename,time FROM attachment')
                 urls.append( [ tag.url(
-                                tag.loc( self.env.abs_href('attachment', type, id, filename) ),
+                                tag.loc( self.env.abs_href('attachment', type_, id_, filename) ),
                                 tag.lastmod( self._fixtime(format_datetime (time,'iso8601')) ),
                                 tag.priority(self.default_priority)
-                          ) for [type,id,filename,time] in cursor if 'ATTACHMENT_VIEW' in req.perm(Attachment(self.env, type, id, filename)) ] )
+                          ) for (type_,id_,filename,time) in cursor if 'ATTACHMENT_VIEW' in req.perm(Attachment(self.env, type_, id_, filename).resource) ] )
             
             if 'browser' in self.listrealms and self.env.is_component_enabled('trac.versioncontrol.') and 'BROWSER_VIEW' in req.perm:
                 urls.append( [ tag.url(
@@ -192,7 +193,7 @@ class GoogleSitemapPlugin(Component):
                               tag.loc( self.env.abs_href('blog', name) ),
                               tag.lastmod( self._fixtime(format_datetime (changetime,'iso8601')) ),
                               tag.priority(self.default_priority)
-                          ) for [name,changetime] in cursor if 'BLOG_VIEW' in Resource('blog', name) ] )
+                          ) for (name,changetime) in cursor if 'BLOG_VIEW' in Resource('blog', name) ] )
             
             xml = tag.urlset(urls, **self._urlset_attrs)
             content = xml.generate().render('xml','utf-8')
